@@ -268,14 +268,14 @@ def evaluate_tiered(definition: Dict[str, Any], aggregate: Dict[str, Any]) -> Di
     pct = 100 if not next_tiers and achieved else max(0, min(99, math.floor(((progress - current_threshold) / denom) * 100)))
     unlocked = bool(achieved)
     discovered = bool(progress > 0)
-    state = "unlocked" if unlocked else ("discovered" if discovered else ("secret" if definition.get("secret") else "locked"))
-    return {"unlocked": unlocked, "discovered": discovered, "state": state, "tier": tier, "progress": progress, "next_tier": next_tier, "next_threshold": next_threshold, "progress_pct": pct}
+    state = "unlocked" if unlocked else ("secret" if definition.get("secret") and not discovered else "discovered")
+    return {"unlocked": unlocked, "discovered": discovered or not definition.get("secret"), "state": state, "tier": tier, "progress": progress, "next_tier": next_tier, "next_threshold": next_threshold, "progress_pct": pct}
 
 
 def evaluate_requirements(definition: Dict[str, Any], aggregate: Dict[str, Any]) -> Dict[str, Any]:
     requirements = definition.get("requirements", [])
     if not requirements:
-        return {"unlocked": False, "discovered": False, "state": "secret" if definition.get("secret") else "locked", "tier": None, "progress": 0, "next_tier": None, "next_threshold": 1, "progress_pct": 0}
+        return {"unlocked": False, "discovered": not definition.get("secret"), "state": "secret" if definition.get("secret") else "discovered", "tier": None, "progress": 0, "next_tier": None, "next_threshold": 1, "progress_pct": 0}
     parts = []
     any_progress = False
     complete = True
@@ -286,20 +286,97 @@ def evaluate_requirements(definition: Dict[str, Any], aggregate: Dict[str, Any])
         complete = complete and value >= threshold
         parts.append(min(1.0, value / max(1, threshold)))
     pct = math.floor((sum(parts) / len(parts)) * 100)
-    state = "unlocked" if complete else ("discovered" if any_progress else ("secret" if definition.get("secret") else "locked"))
-    return {"unlocked": complete, "discovered": any_progress, "state": state, "tier": None, "progress": pct, "next_tier": None, "next_threshold": 100, "progress_pct": 100 if complete else min(99, pct)}
+    state = "unlocked" if complete else ("secret" if definition.get("secret") and not any_progress else "discovered")
+    return {"unlocked": complete, "discovered": any_progress or not definition.get("secret"), "state": state, "tier": None, "progress": pct, "next_tier": None, "next_threshold": 100, "progress_pct": 100 if complete else min(99, pct)}
 
 
 def evaluate_boolean(definition: Dict[str, Any], aggregate: Dict[str, Any]) -> Dict[str, Any]:
     # Backward-compatible helper for old tests/definitions. New catalog avoids simple booleans.
     unlocked = bool(aggregate.get(definition["metric"]))
-    return {"unlocked": unlocked, "discovered": unlocked, "state": "unlocked" if unlocked else "locked", "tier": None, "progress": 1 if unlocked else 0, "next_tier": None, "next_threshold": 1, "progress_pct": 100 if unlocked else 0}
+    return {"unlocked": unlocked, "discovered": True, "state": "unlocked" if unlocked else "discovered", "tier": None, "progress": 1 if unlocked else 0, "next_tier": None, "next_threshold": 1, "progress_pct": 100 if unlocked else 0}
+
+
+METRIC_LABELS = {
+    "max_tool_calls_in_session": "tool calls in one session",
+    "max_distinct_tools_in_session": "distinct Hermes tools used in one session",
+    "max_terminal_calls_in_session": "terminal calls in one session",
+    "max_file_tool_calls_in_session": "file/search/patch calls in one session",
+    "max_web_browser_calls_in_session": "web search/extract or browser calls in one session",
+    "max_messages_in_session": "messages in one session",
+    "max_files_touched_in_session": "files touched in one session",
+    "total_delegate_calls": "lifetime delegate_task calls",
+    "total_process_calls": "lifetime background process operations",
+    "total_cron_calls": "lifetime scheduled-job operations",
+    "total_errors": "error/failed/traceback messages observed",
+    "traceback_events": "traceback or exception mentions",
+    "log_read_events": "log inspections",
+    "port_conflict_events": "dev-server port conflict detections",
+    "permission_denied_events": "permission-denied errors",
+    "install_error_events": "package-install failures",
+    "install_success_events": "successful package installs after package work",
+    "restart_after_error_events": "restart/reload actions after error clusters",
+    "env_var_error_events": "missing auth/config/environment-variable events",
+    "yaml_error_events": "YAML/config parse incidents",
+    "docker_conflict_events": "Docker/container-name conflicts",
+    "frontend_activity_events": "frontend/CSS/SVG/React activity mentions",
+    "css_activity_events": "CSS, styling, Tailwind, or className activity",
+    "git_events": "git workflow commands",
+    "tiny_patch_after_errors_events": "tiny typo-style fixes after error clusters",
+    "skill_events": "Hermes skill mentions or tool use",
+    "skill_manage_events": "skill_manage create/patch/delete operations",
+    "memory_events": "memory or Mnemosyne tool events",
+    "memory_write_events": "durable memory writes",
+    "context_events": "context, compression, token, or cache-pressure mentions",
+    "gateway_events": "gateway/API/chat-platform activity",
+    "plugin_events": "dashboard plugin development or usage signals",
+    "rollback_events": "rollback/checkpoint recovery mentions",
+    "docs_activity_events": "documentation/README/docs activity",
+    "model_events": "model/provider-related activity",
+    "openrouter_events": "OpenRouter mentions",
+    "codex_events": "Codex mentions",
+    "cache_events": "prompt-cache/cache-hit mentions",
+    "total_web_calls": "lifetime web_search/web_extract calls",
+    "total_web_extract_calls": "lifetime web_extract calls",
+    "browser_calls": "lifetime browser automation calls",
+    "total_terminal_calls": "lifetime terminal calls",
+    "total_patch_calls": "lifetime targeted patch edits",
+    "total_file_reads_searches": "lifetime read_file/search_files calls",
+    "image_vision_calls": "image generation or vision tool calls",
+    "tts_calls": "text-to-speech or voice tool calls",
+    "distinct_model_count": "distinct model names seen in session metadata",
+    "session_count": "Hermes sessions",
+    "weekend_sessions": "sessions started on weekends",
+    "night_sessions": "sessions started late night or before dawn",
+}
+
+
+def metric_label(metric: str) -> str:
+    return METRIC_LABELS.get(metric, metric.replace("_", " "))
+
+
+def criteria_for(definition: Dict[str, Any]) -> str:
+    if definition.get("secret") and definition.get("state") == "secret":
+        return "Secret: exact requirement hidden until Hermes sees the first matching signal. Keep using Hermes across debugging, tools, memory, skills, plugins, and model workflows to reveal it."
+    secret_prefix = "Revealed secret. " if definition.get("secret") else ""
+    if "threshold_metric" in definition:
+        tiers_list = sorted(definition.get("tiers", []), key=lambda t: t["threshold"])
+        if not tiers_list:
+            return secret_prefix + "Requirement: use Hermes in the matching workflow."
+        metric = metric_label(definition["threshold_metric"])
+        ladder = ", ".join(f"{t['name']} {t['threshold']}" for t in tiers_list)
+        return secret_prefix + f"Requirement: {metric}. Tier ladder: {ladder}."
+    requirements = definition.get("requirements") or []
+    if requirements:
+        parts = [f"{metric_label(r['metric'])} ≥ {int(r.get('gte', 1))}" for r in requirements]
+        return secret_prefix + "Requirement: " + "; ".join(parts) + "."
+    return secret_prefix + "Requirement: complete the matching Hermes behavior."
 
 
 def display_achievement(item: Dict[str, Any]) -> Dict[str, Any]:
     clean = dict(item)
     if clean.get("state") == "secret":
-        return {**clean, "name": "???", "description": "A secret achievement waits in the logs.", "icon": "secret"}
+        return {**clean, "name": "???", "description": "Secret achievement: hidden until Hermes detects the first relevant behavior in your session history.", "criteria": criteria_for(clean), "icon": "secret"}
+    clean["criteria"] = criteria_for(clean)
     return clean
 
 

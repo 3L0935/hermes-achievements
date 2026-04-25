@@ -15,18 +15,21 @@
 .ha-pills button { border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-card) 72%, transparent); color: var(--color-muted-foreground); padding: .35rem .6rem; font-size: .78rem; cursor: pointer; }
 .ha-pills button.active, .ha-pills button:hover { color: var(--color-foreground); border-color: var(--ha-tier, var(--color-ring)); background: color-mix(in srgb, var(--color-primary) 16%, var(--color-card)); }
 .ha-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .9rem; }
-.ha-card { --ha-tier: var(--color-border); position: relative; overflow: hidden; min-height: 218px; border: 1px solid color-mix(in srgb, var(--ha-tier) 42%, var(--color-border)); background: radial-gradient(circle at 3.5rem 2.4rem, color-mix(in srgb, var(--ha-tier) 18%, transparent), transparent 36%), linear-gradient(180deg, rgba(255,255,255,.035), transparent), color-mix(in srgb, var(--color-card) 90%, #000); transition: transform .16s ease, border-color .16s ease, opacity .16s ease; }
-.ha-card:hover { transform: translateY(-2px); border-color: var(--ha-tier); }
-.ha-card:before { content: ""; position: absolute; inset: .42rem; pointer-events: none; border: 1px solid color-mix(in srgb, var(--ha-tier) 62%, transparent); clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px)); opacity: .68; }
+.ha-card { --ha-tier: var(--color-border); position: relative; overflow: hidden; min-height: 252px; border: 2px solid color-mix(in srgb, var(--ha-tier) 62%, var(--color-border)); background: radial-gradient(circle at 3.5rem 2.4rem, color-mix(in srgb, var(--ha-tier) 24%, transparent), transparent 38%), linear-gradient(180deg, rgba(255,255,255,.045), transparent), color-mix(in srgb, var(--color-card) 90%, #000); transition: transform .16s ease, border-color .16s ease, opacity .16s ease, box-shadow .16s ease; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ha-tier) 20%, transparent); }
+.ha-card:hover { transform: translateY(-2px); border-color: var(--ha-tier); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ha-tier) 38%, transparent), 0 0 0 1px color-mix(in srgb, var(--ha-tier) 18%, transparent); }
+.ha-card:before { content: ""; position: absolute; inset: .48rem; pointer-events: none; border: 2px solid color-mix(in srgb, var(--ha-tier) 86%, transparent); clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 18px 100%, 0 calc(100% - 18px)); opacity: .92; filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ha-tier) 24%, transparent)); }
 .ha-card-content { position: relative; z-index: 1; padding: 1rem !important; display: flex; flex-direction: column; gap: .75rem; height: 100%; }
 .ha-crest-wrap { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto; gap: .85rem; align-items: start; }
-.ha-crest { display: grid; place-items: center; width: 4.25rem; height: 4.25rem; color: var(--ha-tier); background: color-mix(in srgb, var(--color-background) 80%, #000); border: 2px solid var(--ha-tier); box-shadow: 0 0 26px color-mix(in srgb, var(--ha-tier) 24%, transparent); clip-path: polygon(50% 0, 92% 24%, 92% 76%, 50% 100%, 8% 76%, 8% 24%); }
-.ha-lucide { width: 2.1rem; height: 2.1rem; stroke: currentColor; }
+.ha-crest { display: grid; place-items: center; width: 4.35rem; height: 4.35rem; color: var(--ha-tier); background: radial-gradient(circle at 50% 35%, color-mix(in srgb, var(--ha-tier) 16%, transparent), transparent 58%), color-mix(in srgb, var(--color-background) 84%, #000); border: 3px solid var(--ha-tier); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ha-tier) 28%, transparent), 0 0 0 1px color-mix(in srgb, #000 72%, var(--ha-tier)), 0 0 32px color-mix(in srgb, var(--ha-tier) 34%, transparent); clip-path: polygon(50% 0, 92% 24%, 92% 76%, 50% 100%, 8% 76%, 8% 24%); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--ha-tier) 28%, transparent)); }
+.ha-lucide { width: 2.08rem; height: 2.08rem; stroke: currentColor; stroke-width: 2.15; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ha-tier) 34%, transparent)); }
 .ha-card-title { font-weight: 780; line-height: 1.05; letter-spacing: -0.025em; }
 .ha-card-category { margin-top: .28rem; color: var(--color-muted-foreground); font-size: .76rem; }
 .ha-badges { display: flex; flex-direction: column; align-items: flex-end; gap: .25rem; }
 .ha-tier-badge, .ha-state-badge { border: 1px solid var(--ha-tier); color: var(--ha-tier); background: color-mix(in srgb, var(--ha-tier) 10%, transparent); padding: .16rem .38rem; font-size: .67rem; text-transform: uppercase; letter-spacing: .08em; font-family: var(--font-mono, ui-monospace, monospace); }
 .ha-description { margin: 0; color: var(--color-muted-foreground); font-size: .86rem; line-height: 1.45; min-height: 2.4em; }
+.ha-criteria { border: 1px solid color-mix(in srgb, var(--ha-tier) 32%, var(--color-border)); background: color-mix(in srgb, var(--ha-tier) 7%, transparent); padding: .55rem .65rem; }
+.ha-criteria span { display: block; margin-bottom: .25rem; color: var(--ha-tier); text-transform: uppercase; letter-spacing: .11em; font-size: .64rem; font-family: var(--font-mono, ui-monospace, monospace); }
+.ha-criteria p { margin: 0; color: color-mix(in srgb, var(--color-foreground) 78%, var(--color-muted-foreground)); font-size: .76rem; line-height: 1.38; }
 .ha-progress-row { display: flex; align-items: center; gap: .55rem; margin-top: auto; }
 .ha-progress-track { flex: 1; height: .48rem; border: 1px solid color-mix(in srgb, var(--ha-tier) 34%, var(--color-border)); background: rgba(0,0,0,.22); overflow: hidden; }
 .ha-progress-fill { height: 100%; background: linear-gradient(90deg, var(--ha-tier), color-mix(in srgb, var(--ha-tier) 48%, white)); }
@@ -43,13 +46,16 @@
 .ha-slot-muted { color: var(--color-muted-foreground); margin-left: auto; }
 .ha-error { border-color: #ef4444; color: #fecaca; }
 .ha-loading { color: var(--color-muted-foreground); font-family: var(--font-mono, ui-monospace, monospace); padding: 2rem; border: 1px dashed var(--color-border); }
+.ha-guide { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+.ha-guide > div { border: 1px solid var(--color-border); background: color-mix(in srgb, var(--color-card) 82%, transparent); padding: .85rem 1rem; }
+.ha-guide strong { display: block; margin-bottom: .25rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .12em; font-family: var(--font-mono, ui-monospace, monospace); }
+.ha-guide p { margin: 0; color: var(--color-muted-foreground); font-size: .84rem; line-height: 1.45; }
 .ha-state-discovered { opacity: .92; }
 .ha-state-discovered .ha-card-title { color: color-mix(in srgb, var(--color-foreground) 82%, var(--ha-tier)); }
 .ha-state-discovered:before { border-style: dashed; }
 .ha-state-secret { opacity: .5; filter: grayscale(.55); }
 .ha-state-secret:after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(255,255,255,.035) 8px 10px); }
-.ha-state-locked { opacity: .45; filter: grayscale(.75); }
-.ha-tier-locked { --ha-tier: color-mix(in srgb, var(--color-muted-foreground) 64%, transparent); }
+.ha-tier-pending { --ha-tier: color-mix(in srgb, var(--color-muted-foreground) 64%, transparent); }
 .ha-tier-copper { --ha-tier: #b87333; }
 .ha-tier-copper .ha-crest { clip-path: polygon(15% 0, 85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%); }
 .ha-tier-silver { --ha-tier: #c0c7d2; }
@@ -62,5 +68,5 @@
 .ha-tier-olympian:after { content: ""; position: absolute; inset: -42%; pointer-events: none; background: conic-gradient(from 0deg, transparent, rgba(192,132,252,.15), transparent, rgba(242,201,76,.1), transparent); animation: ha-spin 14s linear infinite; }
 .ha-tier-olympian .ha-crest { clip-path: polygon(50% 0, 94% 18%, 100% 66%, 70% 100%, 30% 100%, 0 66%, 6% 18%); box-shadow: 0 0 30px rgba(192,132,252,.28), 0 0 12px rgba(242,201,76,.14); }
 @keyframes ha-spin { to { transform: rotate(360deg); } }
-@media (max-width: 980px) { .ha-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 980px) { .ha-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ha-guide { grid-template-columns: 1fr; } }
 @media (max-width: 800px) { .ha-stats { grid-template-columns: 1fr; } .ha-hero { flex-direction: column; align-items: stretch; } .ha-crest-wrap { grid-template-columns: 4.5rem 1fr; } .ha-badges { grid-column: 1 / -1; align-items: flex-start; flex-direction: row; } }
