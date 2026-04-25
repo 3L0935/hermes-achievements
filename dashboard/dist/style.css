@@ -5,7 +5,7 @@
 .ha-hero p { position: relative; max-width: 52rem; margin: .65rem 0 0; color: var(--color-muted-foreground); }
 .ha-kicker { position: relative; color: var(--color-muted-foreground); text-transform: uppercase; letter-spacing: .18em; font-size: .72rem; font-family: var(--font-mono, ui-monospace, monospace); }
 .ha-refresh { position: relative; white-space: nowrap; }
-.ha-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.ha-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .75rem; }
 .ha-stat-content { padding: 1rem !important; }
 .ha-stat-label { color: var(--color-muted-foreground); font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; }
 .ha-stat-value { margin-top: .35rem; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.03em; }
@@ -18,14 +18,19 @@
 .ha-card { position: relative; overflow: hidden; min-height: 188px; border-color: color-mix(in srgb, var(--color-border) 70%, transparent); transition: transform .16s ease, border-color .16s ease, opacity .16s ease; }
 .ha-card:hover { transform: translateY(-2px); border-color: var(--color-ring); }
 .ha-card:before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: var(--ha-accent, var(--color-border)); }
-.ha-locked { opacity: .58; filter: grayscale(.2); }
+.ha-locked { opacity: .62; filter: grayscale(.15); }
+.ha-state-discovered { opacity: .9; }
+.ha-state-discovered:before { background: repeating-linear-gradient(90deg, var(--ha-accent, var(--color-primary)) 0 10px, transparent 10px 16px); }
+.ha-state-secret { opacity: .5; filter: grayscale(.55); }
+.ha-state-secret:after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(-45deg, transparent 0 8px, rgba(255,255,255,.035) 8px 10px); }
+.ha-state-locked { opacity: .45; filter: grayscale(.75); }
 .ha-card-content { padding: 1rem !important; display: flex; flex-direction: column; gap: .75rem; }
 .ha-card-top { display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) auto; gap: .75rem; align-items: start; }
 .ha-medal { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; border: 1px solid var(--ha-accent, var(--color-border)); color: var(--ha-accent, var(--color-muted-foreground)); background: color-mix(in srgb, var(--ha-accent, var(--color-border)) 12%, transparent); font-weight: 900; }
 .ha-card-title { font-weight: 750; line-height: 1.1; letter-spacing: -0.02em; }
 .ha-card-category { margin-top: .25rem; color: var(--color-muted-foreground); font-size: .76rem; }
 .ha-badges { display: flex; flex-direction: column; align-items: flex-end; gap: .25rem; }
-.ha-rarity-badge, .ha-tier-badge { border: 1px solid var(--ha-accent, var(--color-border)); color: var(--ha-accent, var(--color-muted-foreground)); background: color-mix(in srgb, var(--ha-accent, var(--color-border)) 10%, transparent); padding: .16rem .38rem; font-size: .67rem; text-transform: uppercase; letter-spacing: .08em; font-family: var(--font-mono, ui-monospace, monospace); }
+.ha-rarity-badge, .ha-tier-badge, .ha-state-badge { border: 1px solid var(--ha-accent, var(--color-border)); color: var(--ha-accent, var(--color-muted-foreground)); background: color-mix(in srgb, var(--ha-accent, var(--color-border)) 10%, transparent); padding: .16rem .38rem; font-size: .67rem; text-transform: uppercase; letter-spacing: .08em; font-family: var(--font-mono, ui-monospace, monospace); }
 .ha-description { margin: 0; color: var(--color-muted-foreground); font-size: .86rem; line-height: 1.45; min-height: 2.4em; }
 .ha-progress-row { display: flex; align-items: center; gap: .55rem; margin-top: auto; }
 .ha-progress-track { flex: 1; height: .45rem; border: 1px solid var(--color-border); background: rgba(0,0,0,.18); overflow: hidden; }
@@ -48,9 +53,16 @@
 .ha-rarity-epic { --ha-accent: #a78bfa; }
 .ha-rarity-legendary { --ha-accent: #f59e0b; }
 .ha-rarity-cursed { --ha-accent: #fb7185; }
+.ha-tier-copper { box-shadow: inset 0 0 0 1px color-mix(in srgb, #b87333 34%, transparent); }
 .ha-tier-copper .ha-tier-badge { color: #b87333; border-color: #b87333; }
+.ha-tier-silver { box-shadow: inset 0 0 0 1px color-mix(in srgb, #c0c7d2 42%, transparent), inset 0 1px 0 rgba(255,255,255,.08); }
 .ha-tier-silver .ha-tier-badge { color: #c0c7d2; border-color: #c0c7d2; }
+.ha-tier-gold { box-shadow: inset 0 0 0 1px color-mix(in srgb, #f2c94c 48%, transparent), 0 0 22px rgba(242,201,76,.09); }
 .ha-tier-gold .ha-tier-badge { color: #f2c94c; border-color: #f2c94c; }
+.ha-tier-diamond { clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px)); box-shadow: inset 0 0 0 1px rgba(103,232,249,.58), 0 0 24px rgba(103,232,249,.12); }
 .ha-tier-diamond .ha-tier-badge { color: #67e8f9; border-color: #67e8f9; }
+.ha-tier-olympian { box-shadow: inset 0 0 0 1px rgba(192,132,252,.7), 0 0 32px rgba(192,132,252,.2), 0 0 10px rgba(242,201,76,.12); }
+.ha-tier-olympian:after { content: ""; position: absolute; inset: -40%; pointer-events: none; background: conic-gradient(from 0deg, transparent, rgba(192,132,252,.15), transparent, rgba(242,201,76,.1), transparent); animation: ha-spin 12s linear infinite; }
 .ha-tier-olympian .ha-tier-badge { color: #c084fc; border-color: #c084fc; }
+@keyframes ha-spin { to { transform: rotate(360deg); } }
 @media (max-width: 800px) { .ha-stats { grid-template-columns: 1fr; } .ha-hero { flex-direction: column; align-items: stretch; } }

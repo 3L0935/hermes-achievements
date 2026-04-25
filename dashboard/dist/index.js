@@ -33,17 +33,20 @@
     const unlocked = achievement.unlocked;
     const progress = achievement.progress || 0;
     const pct = achievement.progress_pct || (unlocked ? 100 : 0);
-    return React.createElement(C.Card, { className: cn("ha-card", unlocked ? "ha-unlocked" : "ha-locked", rarityClass(achievement.rarity), tierClass(achievement.tier)) },
+    const state = achievement.state || (unlocked ? "unlocked" : "locked");
+    const medal = state === "unlocked" ? "★" : state === "discovered" ? "◇" : "?";
+    return React.createElement(C.Card, { className: cn("ha-card", "ha-state-" + state, unlocked ? "ha-unlocked" : "ha-locked", rarityClass(achievement.rarity), tierClass(achievement.tier)) },
       React.createElement(C.CardContent, { className: "ha-card-content" },
         React.createElement("div", { className: "ha-card-top" },
-          React.createElement("div", { className: "ha-medal" }, unlocked ? "★" : "?"),
+          React.createElement("div", { className: "ha-medal" }, medal),
           React.createElement("div", { className: "ha-card-title-wrap" },
             React.createElement("div", { className: "ha-card-title" }, achievement.name),
             React.createElement("div", { className: "ha-card-category" }, achievement.category)
           ),
           React.createElement("div", { className: "ha-badges" },
             React.createElement("span", { className: "ha-rarity-badge" }, achievement.rarity),
-            React.createElement("span", { className: "ha-tier-badge" }, achievement.tier || "Locked")
+            React.createElement("span", { className: "ha-state-badge" }, state),
+            React.createElement("span", { className: "ha-tier-badge" }, achievement.tier || (state === "discovered" ? "Progress" : "Locked"))
           )
         ),
         React.createElement("p", { className: "ha-description" }, achievement.description),
@@ -81,11 +84,15 @@
     const categories = ["All"].concat(Array.from(new Set(achievements.map(function (a) { return a.category; }))));
     const visible = achievements.filter(function (a) {
       if (category !== "All" && a.category !== category) return false;
-      if (visibility === "unlocked" && !a.unlocked) return false;
-      if (visibility === "locked" && a.unlocked) return false;
+      if (visibility === "unlocked" && a.state !== "unlocked") return false;
+      if (visibility === "discovered" && a.state !== "discovered") return false;
+      if (visibility === "secret" && a.state !== "secret") return false;
+      if (visibility === "locked" && a.state !== "locked") return false;
       return true;
     });
-    const unlocked = achievements.filter(function (a) { return a.unlocked; });
+    const unlocked = achievements.filter(function (a) { return a.state === "unlocked"; });
+    const discovered = achievements.filter(function (a) { return a.state === "discovered"; });
+    const secret = achievements.filter(function (a) { return a.state === "secret"; });
     const latest = unlocked.slice().sort(function (a, b) { return (b.unlocked_at || 0) - (a.unlocked_at || 0); }).slice(0, 5);
     const highest = ["Olympian", "Diamond", "Gold", "Silver", "Copper"].find(function (tier) { return unlocked.some(function (a) { return a.tier === tier; }); }) || "None yet";
 
@@ -104,7 +111,9 @@
       ),
       error && React.createElement(C.Card, { className: "ha-error" }, React.createElement(C.CardContent, null, String(error))),
       React.createElement("div", { className: "ha-stats" },
-        React.createElement(StatCard, { label: "Unlocked", value: (data ? data.unlocked_count : 0) + " / " + (data ? data.total_count : 0), hint: "total trophy case" }),
+        React.createElement(StatCard, { label: "Unlocked", value: (data ? data.unlocked_count : 0) + " / " + (data ? data.total_count : 0), hint: "earned badges" }),
+        React.createElement(StatCard, { label: "Discovered", value: discovered.length, hint: "progress started" }),
+        React.createElement(StatCard, { label: "Secrets", value: secret.length, hint: "still hidden" }),
         React.createElement(StatCard, { label: "Highest tier", value: highest, hint: "Copper → Olympian" }),
         React.createElement(StatCard, { label: "Latest", value: latest[0] ? latest[0].name : "None yet", hint: latest[0] ? latest[0].rarity : "run Hermes more" })
       ),
@@ -112,7 +121,7 @@
         React.createElement("div", { className: "ha-pills" }, categories.map(function (cat) {
           return React.createElement("button", { key: cat, onClick: function () { setCategory(cat); }, className: cat === category ? "active" : "" }, cat);
         })),
-        React.createElement("div", { className: "ha-pills" }, ["all", "unlocked", "locked"].map(function (v) {
+        React.createElement("div", { className: "ha-pills" }, ["all", "unlocked", "discovered", "secret", "locked"].map(function (v) {
           return React.createElement("button", { key: v, onClick: function () { setVisibility(v); }, className: v === visibility ? "active" : "" }, v);
         }))
       ),
