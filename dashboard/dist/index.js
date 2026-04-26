@@ -58,6 +58,76 @@
   }
 
 
+  function LoadingSkeletonCard(props) {
+    return React.createElement(C.Card, { className: "ha-card ha-skeleton-card ha-tier-pending" },
+      React.createElement(C.CardContent, { className: "ha-card-content" },
+        React.createElement("div", { className: "ha-card-head" },
+          React.createElement("div", { className: "ha-skeleton ha-skeleton-icon" }),
+          React.createElement("div", { className: "ha-skeleton-stack" },
+            React.createElement("div", { className: "ha-skeleton ha-skeleton-title" }),
+            React.createElement("div", { className: "ha-skeleton ha-skeleton-meta" })
+          ),
+          React.createElement("div", { className: "ha-badges" },
+            React.createElement("div", { className: "ha-skeleton ha-skeleton-badge" }),
+            React.createElement("div", { className: "ha-skeleton ha-skeleton-badge ha-skeleton-badge-short" })
+          )
+        ),
+        React.createElement("div", { className: "ha-skeleton ha-skeleton-line" }),
+        React.createElement("div", { className: "ha-skeleton ha-skeleton-line ha-skeleton-line-short" }),
+        React.createElement("div", { className: "ha-skeleton ha-skeleton-criteria" }),
+        React.createElement("div", { className: "ha-evidence-slot" }, React.createElement("div", { className: "ha-skeleton ha-skeleton-evidence" })),
+        React.createElement("div", { className: "ha-progress-row" },
+          React.createElement("div", { className: "ha-skeleton ha-skeleton-progress" }),
+          React.createElement("div", { className: "ha-skeleton ha-skeleton-progress-text" })
+        )
+      )
+    );
+  }
+
+  function LoadingPage() {
+    return React.createElement("div", { className: "ha-page ha-page-loading" },
+      React.createElement("section", { className: "ha-hero ha-loading-hero" },
+        React.createElement("div", null,
+          React.createElement("div", { className: "ha-kicker" }, "Agentic Gamerscore"),
+          React.createElement("h1", null, "Hermes Achievements"),
+          React.createElement("p", null, "Scanning Hermes session history. First scan can take 5–10 seconds on large histories.")
+        ),
+        React.createElement("div", { className: "ha-scan-status", role: "status", "aria-live": "polite" },
+          React.createElement("span", { className: "ha-scan-pulse", "aria-hidden": "true" }),
+          React.createElement("div", null,
+            React.createElement("strong", null, "Building achievement profile…"),
+            React.createElement("p", null, "Reading sessions, tool calls, model metadata, and unlock state.")
+          )
+        )
+      ),
+      React.createElement("div", { className: "ha-stats" },
+        ["Unlocked", "Discovered", "Secrets", "Highest tier", "Latest"].map(function (label) {
+          return React.createElement(C.Card, { key: label, className: "ha-stat ha-skeleton-stat" },
+            React.createElement(C.CardContent, { className: "ha-stat-content" },
+              React.createElement("div", { className: "ha-stat-label" }, label),
+              React.createElement("div", { className: "ha-skeleton ha-skeleton-stat-value" }),
+              React.createElement("div", { className: "ha-skeleton ha-skeleton-stat-hint" })
+            )
+          );
+        })
+      ),
+      React.createElement("section", { className: "ha-guide ha-loading-guide" },
+        React.createElement("div", null,
+          React.createElement("strong", null, "Scan status"),
+          React.createElement("p", null, "Hermes is scanning local history once, then cards will appear automatically. Nothing is stuck if this takes a few seconds.")
+        ),
+        React.createElement("div", null,
+          React.createElement("strong", null, "What is scanned"),
+          React.createElement("p", null, "Sessions, tool calls, model metadata, errors, achievements, and local unlock state.")
+        )
+      ),
+      React.createElement("section", { className: "ha-grid" }, [0, 1, 2, 3, 4, 5].map(function (i) {
+        return React.createElement(LoadingSkeletonCard, { key: i });
+      }))
+    );
+  }
+
+
   function AchievementCard({ achievement }) {
     const unlocked = achievement.unlocked;
     const progress = achievement.progress || 0;
@@ -133,7 +203,7 @@
     const highest = ["Olympian", "Diamond", "Gold", "Silver", "Copper"].find(function (tier) { return unlocked.some(function (a) { return a.tier === tier; }); }) || "None yet";
 
     if (loading) {
-      return React.createElement("div", { className: "ha-page" }, React.createElement("div", { className: "ha-loading" }, "Scanning Hermes sessions…"));
+      return React.createElement(LoadingPage, null);
     }
 
     return React.createElement("div", { className: "ha-page" },
