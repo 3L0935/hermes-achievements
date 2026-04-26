@@ -98,6 +98,22 @@ ACHIEVEMENTS: List[Dict[str, Any]] = [
     {"id": "openrouter_enjoyer", "name": "OpenRouter Enjoyer", "description": "Route model work through OpenRouter repeatedly.", "category": "Model Lore", "kind": "lifetime", "icon": "router", "threshold_metric": "openrouter_events", "tiers": tiers([250, 750, 2000, 6000, 15000])},
     {"id": "codex_conjurer", "name": "Codex Conjurer", "description": "Summon Codex-flavored assistance often enough for a ritual.", "category": "Model Lore", "kind": "lifetime", "icon": "codex", "threshold_metric": "codex_events", "tiers": tiers([500, 1500, 4000, 10000, 25000])},
     {"id": "multi_model_mage", "name": "Multi-Model Mage", "description": "Use a real spread of distinct model names across Hermes history.", "category": "Model Lore", "kind": "lifetime", "icon": "prism", "threshold_metric": "distinct_model_count", "tiers": tiers([10, 20, 40, 80, 160])},
+    {"id": "five_model_flight", "name": "Five-Model Flight", "description": "Try at least five distinct LLMs instead of marrying the first model that answers.", "category": "Model Lore", "kind": "lifetime", "icon": "prism", "threshold_metric": "distinct_model_count", "tiers": tiers([5, 10, 20, 40, 80])},
+    {"id": "provider_polyglot", "name": "Provider Polyglot", "description": "Use models from multiple providers across Hermes history.", "category": "Model Lore", "kind": "lifetime", "icon": "swap", "threshold_metric": "distinct_provider_count", "tiers": tiers([2, 3, 5, 8, 12])},
+    {"id": "model_sommelier", "name": "Model Sommelier", "description": "Taste enough model/provider conversations to develop preferences.", "category": "Model Lore", "kind": "lifetime", "icon": "wine", "threshold_metric": "model_events", "tiers": tiers([250, 750, 2000, 6000, 15000])},
+    {"id": "claude_confidant", "name": "Claude Confidant", "description": "Bring Claude-flavored reasoning into the workflow repeatedly.", "category": "Model Lore", "kind": "lifetime", "icon": "quote", "threshold_metric": "claude_events", "tiers": tiers([50, 150, 500, 1500, 4000])},
+    {"id": "gemini_cartographer", "name": "Gemini Cartographer", "description": "Map enough Gemini-related workflows to know the terrain.", "category": "Model Lore", "kind": "lifetime", "icon": "compass", "threshold_metric": "gemini_events", "tiers": tiers([50, 150, 500, 1500, 4000])},
+    {"id": "open_weights_pilgrim", "name": "Open Weights Pilgrim", "description": "Touch local/open-weight model territory: GGUF, llama.cpp, Ollama, vLLM, or similar.", "category": "Model Lore", "kind": "lifetime", "icon": "terminal", "threshold_metric": "local_model_events", "tiers": tiers([10, 30, 100, 300, 800])},
+    {"id": "fallback_pilot", "name": "Fallback Pilot", "description": "Switch models/providers enough that fallback behavior becomes a piloting skill.", "category": "Model Lore", "kind": "multi_condition", "icon": "ship", "requirements": [req("distinct_model_count", 5), req("model_events", 100)]},
+
+    # Workflow Intelligence
+    {"id": "toolset_cartographer", "name": "Toolset Cartographer", "description": "Navigate Hermes toolsets deliberately instead of treating tools as a blur.", "category": "Hermes Native", "kind": "lifetime", "icon": "compass", "threshold_metric": "toolset_events", "tiers": tiers([20, 60, 200, 600, 1500])},
+    {"id": "config_surgeon", "name": "Config Surgeon", "description": "Operate on config files, environment settings, and dashboard knobs without flinching.", "category": "Hermes Native", "kind": "lifetime", "icon": "key", "threshold_metric": "config_events", "tiers": tiers([50, 150, 500, 1500, 4000])},
+    {"id": "rebase_acrobat", "name": "Rebase Acrobat", "description": "Handle real git history surgery: rebase, conflict, merge, fetch, push.", "category": "Vibe Coding", "kind": "lifetime", "icon": "branch", "threshold_metric": "git_history_events", "tiers": tiers([10, 30, 100, 300, 800])},
+    {"id": "test_suite_tamer", "name": "Test Suite Tamer", "description": "Run enough verification commands that green text becomes part of the ritual.", "category": "Tool Mastery", "kind": "lifetime", "icon": "daemon", "threshold_metric": "test_events", "tiers": tiers([25, 75, 200, 600, 1500])},
+    {"id": "screenshot_hunter", "name": "Screenshot Hunter", "description": "Capture, inspect, and polish visual proof instead of just claiming it works.", "category": "Tool Mastery", "kind": "lifetime", "icon": "eye", "threshold_metric": "screenshot_events", "tiers": tiers([10, 30, 100, 300, 800])},
+    {"id": "browser_sleuth", "name": "Browser Sleuth", "description": "Combine browser automation with web research in the same investigative trail.", "category": "Research/Web", "kind": "multi_condition", "icon": "browser", "requirements": [req("browser_calls", 25), req("total_web_extract_calls", 25)]},
+    {"id": "release_ritualist", "name": "Release Ritualist", "description": "Tag, version, publish, and ship like the repo has users watching.", "category": "Vibe Coding", "kind": "lifetime", "icon": "ship", "threshold_metric": "release_events", "tiers": tiers([3, 10, 30, 100, 300])},
 
     # Lifestyle
     {"id": "marathon_operator", "name": "Marathon Operator", "description": "Accumulate a serious number of Hermes sessions.", "category": "Lifestyle", "kind": "lifetime", "icon": "marathon", "threshold_metric": "session_count", "tiers": tiers([75, 200, 500, 1500, 5000])},
@@ -149,6 +165,18 @@ def _content(msg: Dict[str, Any]) -> str:
 def _count_tool(tool_names: List[str], *needles: str) -> int:
     lowered = [name.lower() for name in tool_names]
     return sum(1 for name in lowered if any(needle in name for needle in needles))
+
+
+def model_provider(model_name: str) -> Optional[str]:
+    name = (model_name or "").strip().lower()
+    if not name or name == "none":
+        return None
+    if "/" in name:
+        return name.split("/", 1)[0]
+    for provider in ["openai", "anthropic", "google", "gemini", "mistral", "meta", "qwen", "deepseek", "xai", "nous", "ollama", "groq", "openrouter", "codex"]:
+        if provider in name:
+            return "google" if provider == "gemini" else provider
+    return name.split(":", 1)[0].split("-", 1)[0]
 
 
 def analyze_messages(session_id: str, title: str, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -246,9 +274,18 @@ def analyze_messages(session_id: str, title: str, messages: List[Dict[str, Any]]
         "plugin_events": len(re.findall(r"plugin|dashboard-plugins|__HERMES_PLUGIN|manifest\.json", full_text, re.I)),
         "rollback_events": len(re.findall(r"rollback|checkpoint", full_text, re.I)),
         "docs_activity_events": len(re.findall(r"docs|documentation|docusaurus|README", full_text, re.I)),
-        "model_events": len(re.findall(r"model|provider|openrouter|codex|gemini|claude", full_text, re.I)),
+        "model_events": len(re.findall(r"model|provider|openrouter|codex|gemini|claude|anthropic|openai|mistral|qwen|deepseek|llama|ollama|vllm|gguf", full_text, re.I)),
         "openrouter_events": len(re.findall(r"openrouter", full_text, re.I)),
         "codex_events": len(re.findall(r"codex", full_text, re.I)),
+        "claude_events": len(re.findall(r"claude|anthropic", full_text, re.I)),
+        "gemini_events": len(re.findall(r"gemini|google ai|google model", full_text, re.I)),
+        "local_model_events": len(re.findall(r"ollama|llama\.cpp|gguf|vllm|local model|open[- ]weight|open weights", full_text, re.I)),
+        "toolset_events": len(re.findall(r"toolset|enabled_toolsets|browser tool|terminal tool|file tool|web tool", full_text, re.I)),
+        "config_events": len(re.findall(r"config\.ya?ml|config|environment variable|\.env|manifest\.json|settings", full_text, re.I)),
+        "git_history_events": len(re.findall(r"\bgit\s+(rebase|merge|fetch|pull|push|tag|checkout)|merge conflict|conflict\s*\(|rebase --continue", full_text, re.I)),
+        "test_events": len(re.findall(r"pytest|unittest|vitest|playwright|npm test|pnpm test|node --check|py_compile|tests? passed|\bOK\b", full_text, re.I)),
+        "screenshot_events": len(re.findall(r"screenshot|playwright|vision_analyze|browser_vision|\.png|image data", full_text, re.I)),
+        "release_events": len(re.findall(r"\bgit\s+tag|release|version bump|changelog|publish|pushed? tag", full_text, re.I)),
         "cache_events": len(re.findall(r"cache hit|prompt caching|cache_read", full_text, re.I)),
         "model_names": set(),
     }
@@ -345,6 +382,16 @@ METRIC_LABELS = {
     "image_vision_calls": "image generation or vision tool calls",
     "tts_calls": "text-to-speech or voice tool calls",
     "distinct_model_count": "distinct model names seen in session metadata",
+    "distinct_provider_count": "distinct model providers inferred from session metadata",
+    "claude_events": "Claude/Anthropic model mentions",
+    "gemini_events": "Gemini/Google model mentions",
+    "local_model_events": "local/open-weight model mentions",
+    "toolset_events": "toolset or tool-family mentions",
+    "config_events": "configuration/environment/manifest activity",
+    "git_history_events": "git history operations such as rebase, merge, fetch, push, or tag",
+    "test_events": "test/check/verification command mentions",
+    "screenshot_events": "screenshot, Playwright, PNG, or vision-inspection activity",
+    "release_events": "release, version, publish, or git tag events",
     "session_count": "Hermes sessions",
     "weekend_sessions": "sessions started on weekends",
     "night_sessions": "sessions started late night or before dawn",
@@ -433,16 +480,18 @@ def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
         "image_vision_calls": 0,
         "tts_calls": 0,
         "distinct_model_count": 0,
+        "distinct_provider_count": 0,
         "weekend_sessions": 0,
         "night_sessions": 0,
     }
     sum_keys = [
-        "traceback_events", "log_read_events", "port_conflict_events", "permission_denied_events", "install_error_events", "install_success_events", "restart_after_error_events", "env_var_error_events", "yaml_error_events", "docker_conflict_events", "frontend_activity_events", "css_activity_events", "git_events", "tiny_patch_after_errors_events", "skill_events", "skill_manage_events", "memory_events", "memory_write_events", "context_events", "gateway_events", "plugin_events", "rollback_events", "docs_activity_events", "model_events", "openrouter_events", "codex_events", "cache_events",
+        "traceback_events", "log_read_events", "port_conflict_events", "permission_denied_events", "install_error_events", "install_success_events", "restart_after_error_events", "env_var_error_events", "yaml_error_events", "docker_conflict_events", "frontend_activity_events", "css_activity_events", "git_events", "tiny_patch_after_errors_events", "skill_events", "skill_manage_events", "memory_events", "memory_write_events", "context_events", "gateway_events", "plugin_events", "rollback_events", "docs_activity_events", "model_events", "openrouter_events", "codex_events", "claude_events", "gemini_events", "local_model_events", "toolset_events", "config_events", "git_history_events", "test_events", "screenshot_events", "release_events", "cache_events",
     ]
     for key in sum_keys:
         agg[key] = 0
 
     model_names: Set[str] = set()
+    provider_names: Set[str] = set()
     for s in sessions:
         agg["max_tool_calls_in_session"] = max(agg["max_tool_calls_in_session"], s.get("tool_call_count", 0))
         agg["max_distinct_tools_in_session"] = max(agg["max_distinct_tools_in_session"], s.get("distinct_tool_count", 0))
@@ -468,6 +517,10 @@ def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
         for key in sum_keys:
             agg[key] += s.get(key, 0)
         model_names.update(s.get("model_names") or set())
+        for model_name in s.get("model_names") or set():
+            provider = model_provider(str(model_name))
+            if provider:
+                provider_names.add(provider)
         if s.get("started_at"):
             try:
                 lt = time.localtime(float(s.get("started_at")))
@@ -478,6 +531,7 @@ def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
             except Exception:
                 pass
     agg["distinct_model_count"] = len({m for m in model_names if m and m != "None"})
+    agg["distinct_provider_count"] = len(provider_names)
     return agg
 
 

@@ -32,6 +32,8 @@ Copper → Silver → Gold → Diamond → Olympian
 
 Each card has a collapsible **What counts** section showing the exact tracked metric or requirement once the user wants details.
 
+Version `0.2.0` expands the catalog to 60+ achievements, including model/provider badges such as **Five-Model Flight**, **Provider Polyglot**, **Claude Confidant**, **Gemini Cartographer**, **Open Weights Pilgrim**, and **Fallback Pilot**.
+
 ## Examples
 
 - Let Him Cook
@@ -68,6 +70,27 @@ curl http://127.0.0.1:9119/api/dashboard/plugins/rescan
 ```
 
 If backend API routes 404, restart `hermes dashboard`; plugin APIs are mounted at dashboard startup.
+
+## Updating
+
+If you installed with git:
+
+```bash
+cd ~/.hermes/plugins/hermes-achievements
+git pull --ff-only
+curl http://127.0.0.1:9119/api/dashboard/plugins/rescan
+```
+
+If the update changes backend routes or `plugin_api.py`, restart `hermes dashboard` after pulling.
+
+Achievement unlock state is stored locally in `state.json` and is not overwritten by git updates. New achievements are evaluated from your existing Hermes session history. Achievement IDs are stable and should not be renamed casually because they are the unlock-state keys.
+
+Releases are tagged in git, for example:
+
+```bash
+git fetch --tags
+git checkout v0.2.0
+```
 
 ## Files
 

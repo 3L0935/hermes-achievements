@@ -101,6 +101,29 @@ class AchievementEngineTests(unittest.TestCase):
         self.assertEqual(complete["state"], "unlocked")
         self.assertIs(complete["unlocked"], True)
 
+    def test_catalog_has_60_plus_unique_achievements(self):
+        ids = [achievement["id"] for achievement in plugin_api.ACHIEVEMENTS]
+        self.assertGreaterEqual(len(ids), 60)
+        self.assertEqual(len(ids), len(set(ids)))
+
+    def test_model_provider_metrics_are_aggregated(self):
+        sessions = [
+            {"model_names": {"openai/gpt-5", "anthropic/claude-sonnet-4"}},
+            {"model_names": {"google/gemini-pro", "mistral/large"}},
+            {"model_names": {"qwen/qwen3"}},
+        ]
+
+        aggregate = plugin_api.aggregate_stats(sessions)
+
+        self.assertEqual(aggregate["distinct_model_count"], 5)
+        self.assertEqual(aggregate["distinct_provider_count"], 5)
+        result = plugin_api.evaluate_definition(
+            next(a for a in plugin_api.ACHIEVEMENTS if a["id"] == "five_model_flight"),
+            aggregate,
+        )
+        self.assertEqual(result["state"], "unlocked")
+        self.assertEqual(result["tier"], "Copper")
+
 
 if __name__ == "__main__":
     unittest.main()
