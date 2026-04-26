@@ -65,7 +65,7 @@
     const state = achievement.state || (unlocked ? "unlocked" : "discovered");
     const stateLabel = state === "unlocked" ? "Unlocked" : (state === "secret" ? "Secret" : "Discovered");
     const targetTier = achievement.next_tier || achievement.tier;
-    const tierLabel = achievement.tier ? achievement.tier : (targetTier ? "Target " + targetTier : (state === "secret" ? "Hidden" : "Untiered"));
+    const tierLabel = achievement.tier ? achievement.tier : (targetTier ? "Target " + targetTier : (state === "secret" ? "Hidden" : (unlocked ? "Complete" : "Objective")));
     const progressText = state === "secret" ? "hidden" : (progress + (achievement.next_threshold ? " / " + achievement.next_threshold : ""));
     return React.createElement(C.Card, { className: cn("ha-card", "ha-state-" + state, tierClass(achievement.tier || achievement.next_tier)) },
       React.createElement(C.CardContent, { className: "ha-card-content" },
