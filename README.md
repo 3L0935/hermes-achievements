@@ -2,13 +2,11 @@
 
 Achievement system for the Hermes Dashboard: collectible, tiered badges generated from real local Hermes session history.
 
-
 ![Hermes Achievements dashboard](docs/assets/achievements-dashboard-hd.png)
 
-<p align="center">
-  <img src="docs/assets/achievements-tier-showcase-hd.png" alt="Hermes Achievements demo tier showcase" width="49%" />
-</p>
+![Hermes Achievements tier showcase](docs/assets/achievements-tier-showcase-hd.png)
 
+The screenshots use temporary demo tier data to show the full visual range. The plugin itself reads real local Hermes session history by default.
 
 ## What it does
 
@@ -61,8 +59,8 @@ git clone https://github.com/PCinkusz/hermes-achievements ~/.hermes/plugins/herm
 For local development, keep the repo elsewhere and symlink it:
 
 ```bash
-git clone https://github.com/PCinkusz/hermes-achievements /home/neyer/hermes-achievements
-ln -s /home/neyer/hermes-achievements ~/.hermes/plugins/hermes-achievements
+git clone https://github.com/PCinkusz/hermes-achievements ~/hermes-achievements
+ln -s ~/hermes-achievements ~/.hermes/plugins/hermes-achievements
 ```
 
 Then rescan dashboard plugins:
