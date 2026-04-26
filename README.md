@@ -1,6 +1,6 @@
 # Hermes Achievements
 
-Steam-style achievements for vibe coding and agentic Hermes workflows.
+Achievement system for the Hermes Dashboard: collectible, tiered badges generated from real local Hermes session history.
 
 Built for the Hermes Dashboard plugin hackathon.
 
@@ -9,17 +9,28 @@ Built for the Hermes Dashboard plugin hackathon.
 Hermes Achievements scans local Hermes sessions and unlocks badges based on real agent behavior:
 
 - autonomous tool chains
-- debugging chaos
+- debugging and recovery patterns
 - vibe-coding file edits
-- Hermes-native skills/memory/cron/plugin usage
+- Hermes-native skills, memory, cron, and plugin usage
 - web research and browser automation
+- model/provider workflows
+- lifestyle patterns such as weekend or night sessions
 
-It uses two layers:
+Achievements have three visible states:
 
-- **Progression tiers:** Copper → Silver → Gold → Diamond → Olympian
-- **Rarity flavor:** Common → Uncommon → Rare → Epic → Legendary → Cursed
+- **Unlocked** — earned at least one tier
+- **Discovered** — known achievement, progress visible, not earned yet
+- **Secret** — hidden until Hermes detects the first related signal
 
-Examples:
+Most achievements level through:
+
+```text
+Copper → Silver → Gold → Diamond → Olympian
+```
+
+Each card has a collapsible **What counts** section showing the exact tracked metric or requirement once the user wants details.
+
+## Examples
 
 - Let Him Cook
 - Toolchain Maxxer
@@ -88,9 +99,11 @@ POST /reset-state
 
 ## Development
 
-Run tests with stdlib unittest:
+Run checks:
 
 ```bash
+node --check dashboard/dist/index.js
+python3 -m py_compile dashboard/plugin_api.py
 python3 -m unittest tests/test_achievement_engine.py -v
 ```
 

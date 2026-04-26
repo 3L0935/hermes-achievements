@@ -85,15 +85,17 @@
           React.createElement("summary", null, state === "secret" ? "How to reveal" : "What counts"),
           React.createElement("p", null, achievement.criteria)
         ),
+        React.createElement("div", { className: "ha-evidence-slot" },
+          achievement.evidence ? React.createElement("div", { className: "ha-evidence" },
+            React.createElement("span", { className: "ha-evidence-label" }, "Evidence"),
+            React.createElement("span", { className: "ha-evidence-title" }, achievement.evidence.title || achievement.evidence.session_id || "session")
+          ) : React.createElement("div", { className: "ha-evidence ha-evidence-empty", "aria-hidden": "true" }, "No evidence yet")
+        ),
         React.createElement("div", { className: "ha-progress-row" },
           React.createElement("div", { className: "ha-progress-track" },
             React.createElement("div", { className: "ha-progress-fill", style: { width: Math.max(state === "secret" ? 0 : 3, Math.min(100, pct)) + "%" } })
           ),
           React.createElement("span", { className: "ha-progress-text" }, progressText)
-        ),
-        achievement.evidence && React.createElement("div", { className: "ha-evidence" },
-          React.createElement("span", null, "Evidence: "),
-          React.createElement("code", null, achievement.evidence.title || achievement.evidence.session_id || "session")
         )
       )
     );
