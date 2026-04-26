@@ -4,8 +4,6 @@ Achievement system for the Hermes Dashboard: collectible, tiered badges generate
 
 ![Hermes Achievements dashboard](docs/assets/achievements-dashboard-hd.png)
 
-![Hermes Achievements tier showcase](docs/assets/achievements-tier-showcase-hd.png)
-
 The screenshots use temporary demo tier data to show the full visual range. The plugin itself reads real local Hermes session history by default.
 
 ## What it does
