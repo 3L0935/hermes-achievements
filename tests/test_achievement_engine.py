@@ -124,6 +124,33 @@ class AchievementEngineTests(unittest.TestCase):
         self.assertEqual(result["state"], "unlocked")
         self.assertEqual(result["tier"], "Copper")
 
+    def test_removed_noisy_achievements_are_not_in_catalog(self):
+        ids = {achievement["id"] for achievement in plugin_api.ACHIEVEMENTS}
+        self.assertNotIn("fallback_pilot", ids)
+        self.assertNotIn("browser_sleuth", ids)
+        self.assertNotIn("release_ritualist", ids)
+
+    def test_open_weights_pilgrim_counts_only_local_model_metadata(self):
+        aggregate_mentions_only = plugin_api.aggregate_stats([
+            {"model_names": {"openai/gpt-5"}, "local_model_events": 999},
+        ])
+        aggregate_local_chat = plugin_api.aggregate_stats([
+            {"model_names": {"openai/gpt-5"}},
+            {"model_names": {"ollama/llama3"}},
+        ])
+        definition = next(a for a in plugin_api.ACHIEVEMENTS if a["id"] == "open_weights_pilgrim")
+
+        self.assertEqual(aggregate_mentions_only["local_model_chat_sessions"], 0)
+        self.assertEqual(plugin_api.evaluate_definition(definition, aggregate_mentions_only)["state"], "discovered")
+        self.assertEqual(aggregate_local_chat["local_model_chat_sessions"], 1)
+        self.assertEqual(plugin_api.evaluate_definition(definition, aggregate_local_chat)["state"], "unlocked")
+
+    def test_config_surgeon_ignores_generic_config_mentions(self):
+        stats = plugin_api.analyze_messages("s1", "Config talk", [{"content": "config config configuration not configured"}])
+        self.assertEqual(stats["config_events"], 0)
+        stats = plugin_api.analyze_messages("s2", "Real config", [{"content": "edited config.yaml, manifest.json, and .env.local"}])
+        self.assertGreaterEqual(stats["config_events"], 3)
+
 
 if __name__ == "__main__":
     unittest.main()

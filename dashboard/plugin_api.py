@@ -103,17 +103,14 @@ ACHIEVEMENTS: List[Dict[str, Any]] = [
     {"id": "model_sommelier", "name": "Model Sommelier", "description": "Taste enough model/provider conversations to develop preferences.", "category": "Model Lore", "kind": "lifetime", "icon": "wine", "threshold_metric": "model_events", "tiers": tiers([250, 750, 2000, 6000, 15000])},
     {"id": "claude_confidant", "name": "Claude Confidant", "description": "Bring Claude-flavored reasoning into the workflow repeatedly.", "category": "Model Lore", "kind": "lifetime", "icon": "quote", "threshold_metric": "claude_events", "tiers": tiers([50, 150, 500, 1500, 4000])},
     {"id": "gemini_cartographer", "name": "Gemini Cartographer", "description": "Map enough Gemini-related workflows to know the terrain.", "category": "Model Lore", "kind": "lifetime", "icon": "compass", "threshold_metric": "gemini_events", "tiers": tiers([50, 150, 500, 1500, 4000])},
-    {"id": "open_weights_pilgrim", "name": "Open Weights Pilgrim", "description": "Touch local/open-weight model territory: GGUF, llama.cpp, Ollama, vLLM, or similar.", "category": "Model Lore", "kind": "lifetime", "icon": "terminal", "threshold_metric": "local_model_events", "tiers": tiers([10, 30, 100, 300, 800])},
-    {"id": "fallback_pilot", "name": "Fallback Pilot", "description": "Switch models/providers enough that fallback behavior becomes a piloting skill.", "category": "Model Lore", "kind": "multi_condition", "icon": "ship", "requirements": [req("distinct_model_count", 5), req("model_events", 100)]},
+    {"id": "open_weights_pilgrim", "name": "Open Weights Pilgrim", "description": "Actually chat with local/open-weight models through Hermes session metadata.", "category": "Model Lore", "kind": "lifetime", "icon": "terminal", "threshold_metric": "local_model_chat_sessions", "tiers": tiers([1, 3, 10, 30, 100])},
 
     # Workflow Intelligence
     {"id": "toolset_cartographer", "name": "Toolset Cartographer", "description": "Navigate Hermes toolsets deliberately instead of treating tools as a blur.", "category": "Hermes Native", "kind": "lifetime", "icon": "compass", "threshold_metric": "toolset_events", "tiers": tiers([20, 60, 200, 600, 1500])},
-    {"id": "config_surgeon", "name": "Config Surgeon", "description": "Operate on config files, environment settings, and dashboard knobs without flinching.", "category": "Hermes Native", "kind": "lifetime", "icon": "key", "threshold_metric": "config_events", "tiers": tiers([50, 150, 500, 1500, 4000])},
+    {"id": "config_surgeon", "name": "Config Surgeon", "description": "Operate on real config files, manifests, env files, and dashboard settings without flinching.", "category": "Hermes Native", "kind": "lifetime", "icon": "key", "threshold_metric": "config_events", "tiers": tiers([100, 300, 1000, 3000, 10000])},
     {"id": "rebase_acrobat", "name": "Rebase Acrobat", "description": "Handle real git history surgery: rebase, conflict, merge, fetch, push.", "category": "Vibe Coding", "kind": "lifetime", "icon": "branch", "threshold_metric": "git_history_events", "tiers": tiers([10, 30, 100, 300, 800])},
-    {"id": "test_suite_tamer", "name": "Test Suite Tamer", "description": "Run enough verification commands that green text becomes part of the ritual.", "category": "Tool Mastery", "kind": "lifetime", "icon": "daemon", "threshold_metric": "test_events", "tiers": tiers([25, 75, 200, 600, 1500])},
-    {"id": "screenshot_hunter", "name": "Screenshot Hunter", "description": "Capture, inspect, and polish visual proof instead of just claiming it works.", "category": "Tool Mastery", "kind": "lifetime", "icon": "eye", "threshold_metric": "screenshot_events", "tiers": tiers([10, 30, 100, 300, 800])},
-    {"id": "browser_sleuth", "name": "Browser Sleuth", "description": "Combine browser automation with web research in the same investigative trail.", "category": "Research/Web", "kind": "multi_condition", "icon": "browser", "requirements": [req("browser_calls", 25), req("total_web_extract_calls", 25)]},
-    {"id": "release_ritualist", "name": "Release Ritualist", "description": "Tag, version, publish, and ship like the repo has users watching.", "category": "Vibe Coding", "kind": "lifetime", "icon": "ship", "threshold_metric": "release_events", "tiers": tiers([3, 10, 30, 100, 300])},
+    {"id": "test_suite_tamer", "name": "Test Suite Tamer", "description": "Run enough verification commands that green text becomes part of the ritual.", "category": "Tool Mastery", "kind": "lifetime", "icon": "daemon", "threshold_metric": "test_events", "tiers": tiers([100, 300, 800, 2400, 6000])},
+    {"id": "screenshot_hunter", "name": "Screenshot Hunter", "description": "Capture, inspect, and polish visual proof instead of just claiming it works.", "category": "Tool Mastery", "kind": "lifetime", "icon": "eye", "threshold_metric": "screenshot_events", "tiers": tiers([50, 150, 500, 1500, 5000])},
 
     # Lifestyle
     {"id": "marathon_operator", "name": "Marathon Operator", "description": "Accumulate a serious number of Hermes sessions.", "category": "Lifestyle", "kind": "lifetime", "icon": "marathon", "threshold_metric": "session_count", "tiers": tiers([75, 200, 500, 1500, 5000])},
@@ -177,6 +174,14 @@ def model_provider(model_name: str) -> Optional[str]:
         if provider in name:
             return "google" if provider == "gemini" else provider
     return name.split(":", 1)[0].split("-", 1)[0]
+
+
+def is_local_model_name(model_name: str) -> bool:
+    name = (model_name or "").strip().lower()
+    if not name or name == "none":
+        return False
+    local_markers = ["ollama", "llama.cpp", "localhost", "127.0.0.1", "local/", "local:", "gguf", "vllm-local"]
+    return any(marker in name for marker in local_markers)
 
 
 def analyze_messages(session_id: str, title: str, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -281,7 +286,7 @@ def analyze_messages(session_id: str, title: str, messages: List[Dict[str, Any]]
         "gemini_events": len(re.findall(r"gemini|google ai|google model", full_text, re.I)),
         "local_model_events": len(re.findall(r"ollama|llama\.cpp|gguf|vllm|local model|open[- ]weight|open weights", full_text, re.I)),
         "toolset_events": len(re.findall(r"toolset|enabled_toolsets|browser tool|terminal tool|file tool|web tool", full_text, re.I)),
-        "config_events": len(re.findall(r"config\.ya?ml|config|environment variable|\.env|manifest\.json|settings", full_text, re.I)),
+        "config_events": len(re.findall(r"config\.ya?ml|\b[a-z0-9_-]+config\.(?:js|ts|json|ya?ml)|\.env(?:\b|\.)|manifest\.json|settings\.json|pyproject\.toml|package\.json", full_text, re.I)),
         "git_history_events": len(re.findall(r"\bgit\s+(rebase|merge|fetch|pull|push|tag|checkout)|merge conflict|conflict\s*\(|rebase --continue", full_text, re.I)),
         "test_events": len(re.findall(r"pytest|unittest|vitest|playwright|npm test|pnpm test|node --check|py_compile|tests? passed|\bOK\b", full_text, re.I)),
         "screenshot_events": len(re.findall(r"screenshot|playwright|vision_analyze|browser_vision|\.png|image data", full_text, re.I)),
@@ -386,6 +391,7 @@ METRIC_LABELS = {
     "claude_events": "Claude/Anthropic model mentions",
     "gemini_events": "Gemini/Google model mentions",
     "local_model_events": "local/open-weight model mentions",
+    "local_model_chat_sessions": "Hermes sessions whose model metadata is local/open-weight",
     "toolset_events": "toolset or tool-family mentions",
     "config_events": "configuration/environment/manifest activity",
     "git_history_events": "git history operations such as rebase, merge, fetch, push, or tag",
@@ -481,6 +487,7 @@ def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
         "tts_calls": 0,
         "distinct_model_count": 0,
         "distinct_provider_count": 0,
+        "local_model_chat_sessions": 0,
         "weekend_sessions": 0,
         "night_sessions": 0,
     }
@@ -517,10 +524,13 @@ def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
         for key in sum_keys:
             agg[key] += s.get(key, 0)
         model_names.update(s.get("model_names") or set())
-        for model_name in s.get("model_names") or set():
+        session_models = s.get("model_names") or set()
+        for model_name in session_models:
             provider = model_provider(str(model_name))
             if provider:
                 provider_names.add(provider)
+        if any(is_local_model_name(str(model_name)) for model_name in session_models):
+            agg["local_model_chat_sessions"] += 1
         if s.get("started_at"):
             try:
                 lt = time.localtime(float(s.get("started_at")))
