@@ -4,7 +4,14 @@ Achievement system for the Hermes Dashboard: collectible, tiered badges generate
 
 Built for the Hermes Dashboard plugin hackathon.
 
-![Hermes Achievements dashboard](docs/assets/achievements-dashboard.png)
+![Hermes Achievements dashboard](docs/assets/achievements-dashboard-hd.png)
+
+<p align="center">
+  <img src="docs/assets/achievements-tier-showcase-hd.png" alt="Hermes Achievements demo tier showcase" width="49%" />
+  <img src="docs/assets/achievements-dashboard.png" alt="Hermes Achievements real local dashboard" width="49%" />
+</p>
+
+The HD screenshots use temporary demo tier data to show the full visual range. The plugin itself reads real local Hermes session history by default.
 
 ## What it does
 
@@ -51,13 +58,13 @@ Each card has a collapsible **What counts** section showing the exact tracked me
 Clone into your Hermes plugins directory:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/hermes-achievements ~/.hermes/plugins/hermes-achievements
+git clone https://github.com/PCinkusz/hermes-achievements ~/.hermes/plugins/hermes-achievements
 ```
 
 For local development, keep the repo elsewhere and symlink it:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/hermes-achievements /home/neyer/hermes-achievements
+git clone https://github.com/PCinkusz/hermes-achievements /home/neyer/hermes-achievements
 ln -s /home/neyer/hermes-achievements ~/.hermes/plugins/hermes-achievements
 ```
 
