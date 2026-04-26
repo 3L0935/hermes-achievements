@@ -43,18 +43,34 @@
     );
   }
 
+  function TierLegend() {
+    return React.createElement("div", { className: "ha-tier-legend" },
+      ["Copper", "Silver", "Gold", "Diamond", "Olympian"].map(function (tier, index, arr) {
+        return React.createElement(React.Fragment, { key: tier },
+          React.createElement("span", { className: "ha-tier-step ha-tier-" + tier.toLowerCase() },
+            React.createElement("i", null),
+            tier
+          ),
+          index < arr.length - 1 && React.createElement("span", { className: "ha-tier-arrow" }, "→")
+        );
+      })
+    );
+  }
+
+
   function AchievementCard({ achievement }) {
     const unlocked = achievement.unlocked;
     const progress = achievement.progress || 0;
     const pct = achievement.progress_pct || (unlocked ? 100 : 0);
     const state = achievement.state || (unlocked ? "unlocked" : "discovered");
     const stateLabel = state === "unlocked" ? "Unlocked" : (state === "secret" ? "Secret" : "Discovered");
-    const tierLabel = achievement.tier || (achievement.next_tier ? "Next: " + achievement.next_tier : (state === "secret" ? "Hidden" : "No tier yet"));
+    const targetTier = achievement.next_tier || achievement.tier;
+    const tierLabel = achievement.tier ? achievement.tier : (targetTier ? "Target " + targetTier : (state === "secret" ? "Hidden" : "Untiered"));
     const progressText = state === "secret" ? "hidden" : (progress + (achievement.next_threshold ? " / " + achievement.next_threshold : ""));
     return React.createElement(C.Card, { className: cn("ha-card", "ha-state-" + state, tierClass(achievement.tier || achievement.next_tier)) },
       React.createElement(C.CardContent, { className: "ha-card-content" },
-        React.createElement("div", { className: "ha-crest-wrap" },
-          React.createElement("div", { className: "ha-crest" }, React.createElement(AchievementIcon, { icon: achievement.icon || "secret" })),
+        React.createElement("div", { className: "ha-card-head" },
+          React.createElement("div", { className: "ha-icon" }, React.createElement(AchievementIcon, { icon: achievement.icon || "secret" })),
           React.createElement("div", { className: "ha-card-title-wrap" },
             React.createElement("div", { className: "ha-card-title" }, achievement.name),
             React.createElement("div", { className: "ha-card-category" }, achievement.category)
@@ -65,8 +81,8 @@
           )
         ),
         React.createElement("p", { className: "ha-description" }, achievement.description),
-        achievement.criteria && React.createElement("div", { className: "ha-criteria" },
-          React.createElement("span", null, state === "secret" ? "How to reveal" : "What counts"),
+        achievement.criteria && React.createElement("details", { className: "ha-criteria" },
+          React.createElement("summary", null, state === "secret" ? "How to reveal" : "What counts"),
           React.createElement("p", null, achievement.criteria)
         ),
         React.createElement("div", { className: "ha-progress-row" },
@@ -138,11 +154,11 @@
       React.createElement("section", { className: "ha-guide" },
         React.createElement("div", null,
           React.createElement("strong", null, "Tiers"),
-          React.createElement("p", null, "Most achievements level up through Copper, Silver, Gold, Diamond, and Olympian thresholds. The crest shape/color shows the current tier; the card shows the next tier target.")
+          React.createElement(TierLegend, null)
         ),
         React.createElement("div", null,
           React.createElement("strong", null, "Secret achievements"),
-          React.createElement("p", null, "Secret cards intentionally hide the exact requirement. They reveal themselves as Discovered once Hermes detects related behavior in your history, then show normal progress and requirements.")
+          React.createElement("p", null, "Secrets hide their exact trigger. Once Hermes sees a related signal, the card becomes Discovered and shows its requirement.")
         )
       ),
       React.createElement("div", { className: "ha-toolbar" },
@@ -161,6 +177,12 @@
             a.name
           );
         }))
+      ),
+      visibility === "secret" && visible.length === 0 && React.createElement(C.Card, { className: "ha-secret-empty" },
+        React.createElement(C.CardContent, { className: "ha-secret-empty-content" },
+          React.createElement("strong", null, "No hidden secrets left in this scan."),
+          React.createElement("p", null, "Clue: secrets usually start from unusual failure or power-user patterns — port conflicts, permission walls, missing env vars, YAML mistakes, Docker collisions, rollback/checkpoint use, cache hits, or tiny fixes after lots of red text.")
+        )
       ),
       React.createElement("section", { className: "ha-grid" }, visible.map(function (a) {
         return React.createElement(AchievementCard, { key: a.id, achievement: a });
