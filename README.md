@@ -4,6 +4,8 @@ Achievement system for the Hermes Dashboard: collectible, tiered badges generate
 
 Built for the Hermes Dashboard plugin hackathon.
 
+![Hermes Achievements dashboard](docs/assets/achievements-dashboard.png)
+
 ## What it does
 
 Hermes Achievements scans local Hermes sessions and unlocks badges based on real agent behavior:
