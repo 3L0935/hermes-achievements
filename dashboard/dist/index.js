@@ -262,20 +262,5 @@
     );
   }
 
-  function SummarySlot({ compact }) {
-    const [overview, setOverview] = hooks.useState(null);
-    hooks.useEffect(function () { api("/overview").then(setOverview).catch(function () {}); }, []);
-    if (!overview) return null;
-    return React.createElement(C.Card, { className: "ha-slot" },
-      React.createElement(C.CardContent, { className: "ha-slot-content" },
-        React.createElement("span", { className: "ha-slot-star" }, "◇"),
-        React.createElement("span", null, "Hermes Achievements: ", React.createElement("strong", null, overview.unlocked_count, " / ", overview.total_count), " unlocked"),
-        !compact && overview.latest && overview.latest[0] && React.createElement("span", { className: "ha-slot-muted" }, "Latest: " + overview.latest[0].name)
-      )
-    );
-  }
-
   window.__HERMES_PLUGINS__.register("hermes-achievements", AchievementsPage);
-  window.__HERMES_PLUGINS__.registerSlot("hermes-achievements", "sessions:top", function () { return React.createElement(SummarySlot, { compact: false }); });
-  window.__HERMES_PLUGINS__.registerSlot("hermes-achievements", "analytics:top", function () { return React.createElement(SummarySlot, { compact: true }); });
 })();
