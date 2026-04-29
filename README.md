@@ -6,6 +6,8 @@ Achievement system for the Hermes Dashboard: collectible, tiered badges generate
 
 The screenshots use temporary demo tier data to show the full visual range. The plugin itself reads real local Hermes session history by default.
 
+> **Update notice (2026-04-29):** If you installed this plugin before today, update to the latest version. The achievements scan path was refactored for much faster warm loads (snapshot cache + incremental checkpoint scan).
+
 ## What it does
 
 Hermes Achievements scans local Hermes sessions and unlocks badges based on real agent behavior:
@@ -83,6 +85,11 @@ curl http://127.0.0.1:9119/api/dashboard/plugins/rescan
 
 If the update changes backend routes or `plugin_api.py`, restart `hermes dashboard` after pulling.
 
+As of 2026-04-29, updating is strongly recommended because scan performance changed significantly:
+- removed duplicate `/overview` scan path
+- added cached `/achievements` snapshot
+- added incremental checkpoint reuse for unchanged sessions
+
 Achievement unlock state is stored locally in `state.json` and is not overwritten by git updates. New achievements are evaluated from your existing Hermes session history. Achievement IDs are stable and should not be renamed casually because they are the unlock-state keys.
 
 Releases are tagged in git, for example:
@@ -114,8 +121,8 @@ Routes are mounted under:
 Endpoints:
 
 ```text
-GET  /overview
 GET  /achievements
+GET  /scan-status
 GET  /recent-unlocks
 GET  /sessions/{session_id}/badges
 POST /rescan

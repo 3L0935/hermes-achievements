@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import math
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
@@ -21,6 +22,19 @@ except Exception:  # Allows local unit tests without dashboard dependencies.
             return lambda fn: fn
 
 router = APIRouter()
+
+SNAPSHOT_TTL_SECONDS = 120
+_SCAN_LOCK = threading.Lock()
+_SNAPSHOT_CACHE: Optional[Dict[str, Any]] = None
+_SNAPSHOT_CACHE_AT = 0
+_SCAN_STATUS: Dict[str, Any] = {
+    "state": "idle",
+    "started_at": None,
+    "finished_at": None,
+    "last_error": None,
+    "last_duration_ms": None,
+    "run_count": 0,
+}
 
 ERROR_RE = re.compile(r"\b(error|failed|failure|traceback|exception|permission denied|not found|eaddrinuse|already in use|timed out|blocked)\b", re.I)
 PORT_RE = re.compile(r"\b(port\s+)?(3000|5173|8000|8080|9119)\b.*\b(in use|already|taken|eaddrinuse)\b|\beaddrinuse\b", re.I)
@@ -124,6 +138,14 @@ def state_path() -> Path:
     return Path.home() / ".hermes" / "plugins" / "hermes-achievements" / "state.json"
 
 
+def snapshot_path() -> Path:
+    return Path.home() / ".hermes" / "plugins" / "hermes-achievements" / "scan_snapshot.json"
+
+
+def checkpoint_path() -> Path:
+    return Path.home() / ".hermes" / "plugins" / "hermes-achievements" / "scan_checkpoint.json"
+
+
 def load_state() -> Dict[str, Any]:
     path = state_path()
     if not path.exists():
@@ -138,6 +160,99 @@ def save_state(state: Dict[str, Any]) -> None:
     path = state_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(state, indent=2, sort_keys=True))
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, set):
+        return sorted(_json_safe(v) for v in value)
+    return value
+
+
+def load_snapshot() -> Optional[Dict[str, Any]]:
+    path = snapshot_path()
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text())
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        return None
+    return None
+
+
+def save_snapshot(data: Dict[str, Any]) -> None:
+    path = snapshot_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(_json_safe(data), indent=2, sort_keys=True))
+
+
+def load_checkpoint() -> Dict[str, Any]:
+    path = checkpoint_path()
+    if not path.exists():
+        return {"schema_version": 1, "generated_at": 0, "sessions": {}}
+    try:
+        data = json.loads(path.read_text())
+        if isinstance(data, dict):
+            data.setdefault("schema_version", 1)
+            data.setdefault("generated_at", 0)
+            data.setdefault("sessions", {})
+            if isinstance(data.get("sessions"), dict):
+                return data
+    except Exception:
+        pass
+    return {"schema_version": 1, "generated_at": 0, "sessions": {}}
+
+
+def save_checkpoint(data: Dict[str, Any]) -> None:
+    path = checkpoint_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(_json_safe(data), indent=2, sort_keys=True))
+
+
+def session_fingerprint(meta: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "last_active": meta.get("last_active"),
+        "started_at": meta.get("started_at"),
+        "model": meta.get("model"),
+        "title": meta.get("title") or meta.get("preview") or "Untitled",
+    }
+
+
+def _cache_is_fresh(now: int) -> bool:
+    return _SNAPSHOT_CACHE is not None and (now - _SNAPSHOT_CACHE_AT) <= SNAPSHOT_TTL_SECONDS
+
+
+def _is_snapshot_stale(snapshot: Optional[Dict[str, Any]], now: Optional[int] = None) -> bool:
+    if not isinstance(snapshot, dict):
+        return True
+    ts = int(snapshot.get("generated_at") or 0)
+    current = int(now or time.time())
+    if ts <= 0:
+        return True
+    return (current - ts) > SNAPSHOT_TTL_SECONDS
+
+
+def _scan_status_payload(now: Optional[int] = None) -> Dict[str, Any]:
+    current = int(now or time.time())
+    snap = _SNAPSHOT_CACHE if isinstance(_SNAPSHOT_CACHE, dict) else None
+    generated_at = int((snap or {}).get("generated_at") or 0) if snap else 0
+    return {
+        "state": _SCAN_STATUS.get("state", "idle"),
+        "started_at": _SCAN_STATUS.get("started_at"),
+        "finished_at": _SCAN_STATUS.get("finished_at"),
+        "last_error": _SCAN_STATUS.get("last_error"),
+        "last_duration_ms": _SCAN_STATUS.get("last_duration_ms"),
+        "run_count": _SCAN_STATUS.get("run_count", 0),
+        "ttl_seconds": SNAPSHOT_TTL_SECONDS,
+        "snapshot_generated_at": generated_at or None,
+        "snapshot_age_seconds": (current - generated_at) if generated_at else None,
+        "snapshot_stale": _is_snapshot_stale(snap, current),
+    }
 
 
 def _tool_name_from_call(call: Any) -> Optional[str]:
@@ -438,27 +553,72 @@ def scan_sessions(limit: int = 200) -> Dict[str, Any]:
     try:
         from hermes_state import SessionDB
     except Exception as exc:
-        return {"sessions": [], "aggregate": {}, "error": f"Could not import SessionDB: {exc}"}
+        return {"sessions": [], "aggregate": {}, "error": f"Could not import SessionDB: {exc}", "scan_meta": {"mode": "failed", "sessions_total": 0, "sessions_rescanned": 0, "sessions_reused": 0}}
+
+    checkpoint = load_checkpoint()
+    previous_sessions = checkpoint.get("sessions") if isinstance(checkpoint.get("sessions"), dict) else {}
+    reused = 0
+    rescanned = 0
 
     db = SessionDB()
     try:
         sessions_meta = db.list_sessions_rich(limit=limit, include_children=True, project_compression_tips=False)
         sessions = []
+        checkpoint_sessions: Dict[str, Any] = {}
         for meta in sessions_meta:
             sid = meta.get("id")
-            messages = db.get_messages(sid) if sid else []
-            stats = analyze_messages(sid, meta.get("title") or meta.get("preview") or "Untitled", messages)
+            if not sid:
+                continue
+            fp = session_fingerprint(meta)
+            cached = previous_sessions.get(sid) if isinstance(previous_sessions, dict) else None
+            cached_stats = cached.get("stats") if isinstance(cached, dict) else None
+            cached_fp = cached.get("fingerprint") if isinstance(cached, dict) else None
+
+            if isinstance(cached_stats, dict) and cached_fp == fp:
+                stats = dict(cached_stats)
+                reused += 1
+            else:
+                messages = db.get_messages(sid)
+                stats = analyze_messages(sid, meta.get("title") or meta.get("preview") or "Untitled", messages)
+                rescanned += 1
+
+            stats["session_id"] = sid
+            stats["title"] = meta.get("title") or meta.get("preview") or stats.get("title") or "Untitled"
             stats["started_at"] = meta.get("started_at")
             stats["last_active"] = meta.get("last_active")
             stats["source"] = meta.get("source")
             if meta.get("model"):
-                stats["model_names"].add(str(meta.get("model")))
+                stats.setdefault("model_names", set())
+                if isinstance(stats["model_names"], set):
+                    stats["model_names"].add(str(meta.get("model")))
+                elif isinstance(stats["model_names"], list):
+                    if str(meta.get("model")) not in stats["model_names"]:
+                        stats["model_names"].append(str(meta.get("model")))
+                else:
+                    stats["model_names"] = {str(meta.get("model"))}
+
             sessions.append(stats)
+            checkpoint_sessions[sid] = {"fingerprint": fp, "stats": _json_safe(stats)}
+
+        save_checkpoint({
+            "schema_version": 1,
+            "generated_at": int(time.time()),
+            "sessions": checkpoint_sessions,
+        })
     finally:
         close = getattr(db, "close", None)
         if close:
             close()
-    return {"sessions": sessions, "aggregate": aggregate_stats(sessions)}
+    return {
+        "sessions": sessions,
+        "aggregate": aggregate_stats(sessions),
+        "scan_meta": {
+            "mode": "incremental" if reused > 0 else "full",
+            "sessions_total": len(sessions),
+            "sessions_rescanned": rescanned,
+            "sessions_reused": reused,
+        },
+    }
 
 
 def aggregate_stats(sessions: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -574,7 +734,7 @@ def evidence_for(definition: Dict[str, Any], sessions: List[Dict[str, Any]]) -> 
     return None
 
 
-def evaluate_all() -> Dict[str, Any]:
+def compute_all() -> Dict[str, Any]:
     scan = scan_sessions()
     aggregate = scan.get("aggregate", {})
     state = load_state()
@@ -595,22 +755,81 @@ def evaluate_all() -> Dict[str, Any]:
     unlocked = [a for a in evaluated if a["unlocked"]]
     discovered = [a for a in evaluated if a.get("state") == "discovered"]
     secret = [a for a in evaluated if a.get("state") == "secret"]
-    return {"achievements": evaluated, "sessions": scan.get("sessions", []), "aggregate": aggregate, "error": scan.get("error"), "unlocked_count": len(unlocked), "discovered_count": len(discovered), "secret_count": len(secret), "total_count": len(evaluated)}
+    return {
+        "achievements": evaluated,
+        "sessions": scan.get("sessions", []),
+        "aggregate": aggregate,
+        "scan_meta": scan.get("scan_meta", {}),
+        "error": scan.get("error"),
+        "unlocked_count": len(unlocked),
+        "discovered_count": len(discovered),
+        "secret_count": len(secret),
+        "total_count": len(evaluated),
+        "generated_at": now,
+    }
+
+
+def evaluate_all(force: bool = False) -> Dict[str, Any]:
+    global _SNAPSHOT_CACHE, _SNAPSHOT_CACHE_AT
+    now = int(time.time())
+
+    if not force and _cache_is_fresh(now):
+        return _SNAPSHOT_CACHE or {}
+
+    if not force and _SNAPSHOT_CACHE is None:
+        persisted = load_snapshot()
+        if isinstance(persisted, dict):
+            generated_at = int(persisted.get("generated_at") or 0)
+            _SNAPSHOT_CACHE = persisted
+            _SNAPSHOT_CACHE_AT = generated_at or now
+            if (now - _SNAPSHOT_CACHE_AT) <= SNAPSHOT_TTL_SECONDS:
+                return _SNAPSHOT_CACHE
+
+    with _SCAN_LOCK:
+        now = int(time.time())
+        if not force and _cache_is_fresh(now):
+            return _SNAPSHOT_CACHE or {}
+
+        started = int(time.time())
+        _SCAN_STATUS["state"] = "running"
+        _SCAN_STATUS["started_at"] = started
+        _SCAN_STATUS["last_error"] = None
+        try:
+            computed = compute_all()
+            _SNAPSHOT_CACHE = _json_safe(computed)
+            _SNAPSHOT_CACHE_AT = int(_SNAPSHOT_CACHE.get("generated_at") or int(time.time()))
+            save_snapshot(_SNAPSHOT_CACHE)
+            _SCAN_STATUS["state"] = "idle"
+            _SCAN_STATUS["finished_at"] = int(time.time())
+            _SCAN_STATUS["last_duration_ms"] = int((_SCAN_STATUS["finished_at"] - started) * 1000)
+            _SCAN_STATUS["run_count"] = int(_SCAN_STATUS.get("run_count", 0)) + 1
+            return _SNAPSHOT_CACHE
+        except Exception as exc:
+            _SCAN_STATUS["state"] = "failed"
+            _SCAN_STATUS["finished_at"] = int(time.time())
+            _SCAN_STATUS["last_duration_ms"] = int((_SCAN_STATUS["finished_at"] - started) * 1000)
+            _SCAN_STATUS["last_error"] = str(exc)
+            _SCAN_STATUS["run_count"] = int(_SCAN_STATUS.get("run_count", 0)) + 1
+            if _SNAPSHOT_CACHE is not None:
+                return _SNAPSHOT_CACHE
+            raise
 
 
 @router.get("/achievements")
 async def achievements():
     data = evaluate_all()
-    return {k: data[k] for k in ["achievements", "unlocked_count", "discovered_count", "secret_count", "total_count", "error"] if k in data}
+    payload = {k: data[k] for k in ["achievements", "unlocked_count", "discovered_count", "secret_count", "total_count", "error", "generated_at"] if k in data}
+    payload["is_stale"] = _is_snapshot_stale(data)
+    payload["scan_meta"] = {
+        **(data.get("scan_meta") or {}),
+        "status": _scan_status_payload(),
+    }
+    return payload
 
 
-@router.get("/overview")
-async def overview():
-    data = evaluate_all()
-    unlocked = [a for a in data["achievements"] if a["unlocked"]]
-    latest = sorted(unlocked, key=lambda a: a.get("unlocked_at") or 0, reverse=True)[:5]
-    categories = sorted({a["category"] for a in data["achievements"]})
-    return {"unlocked_count": data["unlocked_count"], "discovered_count": data["discovered_count"], "secret_count": data["secret_count"], "total_count": data["total_count"], "aggregate": data["aggregate"], "latest": latest, "categories": categories, "error": data.get("error")}
+@router.get("/scan-status")
+async def scan_status():
+    return _scan_status_payload()
 
 
 @router.get("/recent-unlocks")
@@ -636,10 +855,26 @@ async def session_badges(session_id: str):
 
 @router.post("/rescan")
 async def rescan():
-    return {"ok": True, **evaluate_all()}
+    return {"ok": True, **evaluate_all(force=True)}
 
 
 @router.post("/reset-state")
 async def reset_state():
+    global _SNAPSHOT_CACHE, _SNAPSHOT_CACHE_AT
     save_state({"unlocks": {}})
+    _SNAPSHOT_CACHE = None
+    _SNAPSHOT_CACHE_AT = 0
+    _SCAN_STATUS["state"] = "idle"
+    _SCAN_STATUS["started_at"] = None
+    _SCAN_STATUS["finished_at"] = None
+    _SCAN_STATUS["last_error"] = None
+    _SCAN_STATUS["last_duration_ms"] = None
+    try:
+        snapshot_path().unlink(missing_ok=True)
+    except Exception:
+        pass
+    try:
+        checkpoint_path().unlink(missing_ok=True)
+    except Exception:
+        pass
     return {"ok": True}
