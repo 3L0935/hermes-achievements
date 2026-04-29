@@ -829,7 +829,6 @@ async def achievements():
 
 @router.get("/scan-status")
 async def scan_status():
-    evaluate_all()
     return _scan_status_payload()
 
 
