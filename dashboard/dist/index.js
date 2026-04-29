@@ -14,13 +14,42 @@
     return tier ? "ha-tier-" + tier.toLowerCase() : "ha-tier-pending";
   };
 
-  function api(path, options) {
-    return SDK.fetchJSON("/api/plugins/hermes-achievements" + path, options);
+  async function api(path, options) {
+    const url = "/api/plugins/hermes-achievements" + path;
+    const res = await fetch(url, options || {});
+    if (!res.ok) {
+      const text = await res.text().catch(function () { return res.statusText; });
+      throw new Error(res.status + ": " + text);
+    }
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch (_) {
+      return null;
+    }
   }
 
   function AchievementIcon({ icon }) {
     const svg = LUCIDE[icon] || LUCIDE.secret;
+    const ref = React.useRef(null);
+    React.useEffect(function () {
+      if (!ref.current) return;
+      const el = ref.current;
+      while (el.firstChild) el.removeChild(el.firstChild);
+      try {
+        const doc = new DOMParser().parseFromString(
+          "<svg xmlns=\"http://www.w3.org/2000/svg\">" + svg + "</svg>",
+          "image/svg+xml"
+        );
+        if (!doc.querySelector("parsererror")) {
+          Array.from(doc.documentElement.childNodes).forEach(function (n) {
+            el.appendChild(document.importNode(n, true));
+          });
+        }
+      } catch (_) {}
+    }, [svg]);
     return React.createElement("svg", {
+      ref: ref,
       className: "ha-lucide",
       viewBox: "0 0 24 24",
       fill: "none",
@@ -28,7 +57,6 @@
       strokeWidth: 2,
       strokeLinecap: "round",
       strokeLinejoin: "round",
-      dangerouslySetInnerHTML: { __html: svg },
       "aria-hidden": "true",
     });
   }
@@ -181,7 +209,7 @@
     function load() {
       setLoading(true);
       api("/achievements")
-        .then(function (payload) { setData(payload); setError(payload.error || null); })
+        .then(function (payload) { setData(payload); setError((payload && payload.error) || null); })
         .catch(function (err) { setError(String(err)); })
         .finally(function () { setLoading(false); });
     }
