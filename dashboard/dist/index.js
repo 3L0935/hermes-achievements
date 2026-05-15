@@ -14,9 +14,19 @@
     return tier ? "ha-tier-" + tier.toLowerCase() : "ha-tier-pending";
   };
 
+  // Capture the session token synchronously before any async work.
+  // The token is injected as a blocking <script> in index.html, so it is
+  // always available by the time this module executes.
+  const _sessionToken = window.__HERMES_SESSION_TOKEN__;
+
   async function api(path, options) {
     const url = "/api/plugins/hermes-achievements" + path;
-    const res = await fetch(url, options || {});
+    const _options = options || {};
+    const _headers = new Headers(_options.headers);
+    if (_sessionToken && !_headers.has("X-Hermes-Session-Token")) {
+      _headers.set("X-Hermes-Session-Token", _sessionToken);
+    }
+    const res = await fetch(url, Object.assign({}, _options, { headers: _headers }));
     if (!res.ok) {
       const text = await res.text().catch(function () { return res.statusText; });
       throw new Error(res.status + ": " + text);
