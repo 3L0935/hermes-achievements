@@ -20,7 +20,8 @@
   const _sessionToken = window.__HERMES_SESSION_TOKEN__;
 
   async function api(path, options) {
-    const url = "/api/plugins/hermes-achievements" + path;
+    const basePath = (window.__HERMES_BASE_PATH__ || "").replace(/\/$/, "");
+    const url = basePath + "/api/plugins/hermes-achievements" + path;
     const _options = options || {};
     const _headers = new Headers(_options.headers);
     if (_sessionToken && !_headers.has("X-Hermes-Session-Token")) {
